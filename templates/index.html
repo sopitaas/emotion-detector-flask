@@ -211,6 +211,15 @@
             display: none;
         }
 
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+
         @media (max-width: 768px) {
             .app-container {
                 grid-template-columns: 1fr;
@@ -255,6 +264,10 @@
                 <button class="btn btn-clear" onclick="clearAll()">
                     <i class="fas fa-trash"></i> Limpiar Todo
                 </button>
+
+                <div class="status-info" id="statusInfo">
+                    <i class="fas fa-info-circle"></i> Estado: Conectado
+                </div>
             </div>
 
             <!-- Sección de Resultados -->
@@ -283,6 +296,34 @@
 
     <script>
         let currentFile = null;
+
+        // Verificar estado del servidor al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            checkServerStatus();
+        });
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                const statusElement = document.getElementById('statusInfo');
+                
+                if (data.model_loaded) {
+                    statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Estado: Conectado - Modelo cargado';
+                    statusElement.style.background = '#d4edda';
+                    statusElement.style.color = '#155724';
+                } else {
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Estado: Conectado - Modelo no disponible';
+                    statusElement.style.background = '#fff3cd';
+                    statusElement.style.color = '#856404';
+                }
+            } catch (error) {
+                const statusElement = document.getElementById('statusInfo');
+                statusElement.innerHTML = '<i class="fas fa-times-circle"></i> Estado: Error de conexión';
+                statusElement.style.background = '#f8d7da';
+                statusElement.style.color = '#721c24';
+            }
+        }
 
         function handleFileSelect(event) {
             const file = event.target.files[0];
@@ -326,12 +367,28 @@
             hideError();
             clearResults();
 
+            console.log("📤 Enviando imagen al servidor...");
+
+            // Agregar timeout de 30 segundos
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             fetch('/upload', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: controller.signal
             })
-            .then(response => response.json())
+            .then(response => {
+                clearTimeout(timeoutId);
+                console.log("📥 Respuesta recibida, status:", response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP! estado: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log("✅ Datos recibidos:", data);
                 document.getElementById('loading').style.display = 'none';
                 
                 if (data.error) {
@@ -344,8 +401,15 @@
                 }
             })
             .catch(error => {
+                clearTimeout(timeoutId);
+                console.error("❌ Error en fetch:", error);
                 document.getElementById('loading').style.display = 'none';
-                showError('Error de conexión: ' + error.message);
+                
+                if (error.name === 'AbortError') {
+                    showError('Tiempo de espera agotado. El servidor está tardando demasiado.');
+                } else {
+                    showError('Error de conexión: ' + error.message);
+                }
             });
         }
 
@@ -376,6 +440,10 @@
 
             // Limpiar archivos del servidor
             fetch('/clear_uploads', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('🗑️ ' + data.success);
+                })
                 .catch(error => console.error('Error clearing uploads:', error));
         }
 
