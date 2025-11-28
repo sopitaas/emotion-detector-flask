@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Emociones - Subir Foto</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px dashed #e0e0e0;
+            padding-right: 30px;
+        }
+
+        .result-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-area {
+            width: 100%;
+            max-width: 400px;
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-area h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .upload-area p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            margin-top: 10px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .image-preview {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .result-container {
+            text-align: center;
+            width: 100%;
+        }
+
+        .emotion-result {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 15px;
+            background: #f8f9ff;
+            display: none;
+        }
+
+        .emotion-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .emotion-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffeaa7;
+            color: #e17055;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .upload-section {
+                border-right: none;
+                border-bottom: 2px dashed #e0e0e0;
+                padding-right: 0;
+                padding-bottom: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-smile"></i> Detector de Emociones</h1>
+            <p>Sube una foto y detecta si estás 😠 Enojado o 😢 Triste</p>
+        </div>
+
+        <div class="app-container">
+            <!-- Sección de Upload -->
+            <div class="upload-section">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Sube tu foto aquí</h3>
+                    <p>Haz clic o arrastra una imagen</p>
+                    <p class="small">Formatos: JPG, PNG, JPEG (Max. 16MB)</p>
+                </div>
+                
+                <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+                <div class="image-preview" id="imagePreview">
+                    <img id="previewImg" src="" alt="Vista previa">
+                </div>
+                
+                <button class="btn" onclick="analyzeImage()" id="analyzeBtn" disabled>
+                    <i class="fas fa-brain"></i> Analizar Emoción
+                </button>
+                
+                <button class="btn btn-clear" onclick="clearAll()">
+                    <i class="fas fa-trash"></i> Limpiar Todo
+                </button>
+            </div>
+
+            <!-- Sección de Resultados -->
+            <div class="result-section">
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Analizando emoción...</p>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <div class="result-container">
+                    <div class="image-preview" id="resultImagePreview">
+                        <img id="resultImg" src="" alt="Resultado">
+                    </div>
+                    
+                    <div class="emotion-result" id="emotionResult">
+                        <div class="emotion-icon" id="emotionIcon"></div>
+                        <div class="emotion-text" id="emotionText"></div>
+                        <div class="confidence" id="confidenceText"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFile = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validar tipo de archivo
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Por favor, sube una imagen válida (JPG, PNG o GIF)');
+                return;
+            }
+
+            // Validar tamaño (16MB)
+            if (file.size > 16 * 1024 * 1024) {
+                showError('La imagen es demasiado grande. Máximo 16MB.');
+                return;
+            }
+
+            currentFile = file;
+            
+            // Mostrar vista previa
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+                document.getElementById('analyzeBtn').disabled = false;
+                hideError();
+                clearResults();
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function analyzeImage() {
+            if (!currentFile) return;
+
+            const formData = new FormData();
+            formData.append('file', currentFile);
+
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            hideError();
+            clearResults();
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                if (data.success) {
+                    showResults(data.result, data.result_image_url);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showError('Error de conexión: ' + error.message);
+            });
+        }
+
+        function showResults(result, imageUrl) {
+            // Mostrar imagen con resultados
+            document.getElementById('resultImg').src = imageUrl;
+            document.getElementById('resultImagePreview').style.display = 'block';
+            
+            // Mostrar resultado de emoción
+            document.getElementById('emotionIcon').textContent = result.emoji;
+            document.getElementById('emotionText').textContent = result.emotion;
+            document.getElementById('confidenceText').textContent = 
+                `Confianza: ${(result.confidence * 100).toFixed(1)}%`;
+            
+            document.getElementById('emotionResult').style.display = 'block';
+        }
+
+        function clearAll() {
+            // Limpiar formulario
+            document.getElementById('fileInput').value = '';
+            document.getElementById('analyzeBtn').disabled = true;
+            currentFile = null;
+            
+            // Ocultar vistas previas
+            document.getElementById('imagePreview').style.display = 'none';
+            clearResults();
+            hideError();
+
+            // Limpiar archivos del servidor
+            fetch('/clear_uploads', { method: 'POST' })
+                .catch(error => console.error('Error clearing uploads:', error));
+        }
+
+        function clearResults() {
+            document.getElementById('resultImagePreview').style.display = 'none';
+            document.getElementById('emotionResult').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Drag and drop functionality
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#764ba2';
+            this.style.background = '#f0f2ff';
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#667eea';
+            this.style.background = '#f8f9ff';
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#667eea';
+            this.style.background = '#f8f9ff';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const fileInput = document.getElementById('fileInput');
+                fileInput.files = files;
+                handleFileSelect({ target: fileInput });
+            }
+        });
+    </script>
+</body>
+</html>
